@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 )
 
 func messageHandler(w http.ResponseWriter, r *http.Request) {
@@ -25,6 +26,11 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	privateIP, err := getPrivateIP()
+	if err != nil {
+		fmt.Println("Erro ao obter endereço IP:", err)
+		return
+	}
 	// Configura o handler para a rota "/"
 	port := "8090"
 	// http.HandleFunc("/", messageHandler)
@@ -37,7 +43,7 @@ func main() {
 
 	// Listen for incoming connections
 	// listener, err := net.Listen("tcp", "54.210.84.139:"+port)
-	listener, err := net.Listen("tcp", " 172.31.25.121:"+port)
+	listener, err := net.Listen("tcp", privateIP+":"+port)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -75,4 +81,12 @@ func handleClient(conn net.Conn) {
 		// Process and use the data (here, we'll just print it)
 		fmt.Printf("Received: %s\n", buffer[:n])
 	}
+}
+
+func getPrivateIP() (string, error) {
+	privateIP := os.Getenv("PRIVATE_IP")
+	if privateIP == "" {
+		return "", fmt.Errorf("variável de ambiente PRIVATE_IP não está definida")
+	}
+	return privateIP, nil
 }
