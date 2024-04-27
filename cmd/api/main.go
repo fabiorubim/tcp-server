@@ -75,7 +75,8 @@ func handleClient(conn net.Conn) {
 		}
 
 		// Process and use the data (here, we'll just print it)
-		fmt.Printf("Received: %s\n", buffer[:n])
+		fmt.Println("Mensagem recebida:", string(buffer[:n]))
+
 	}
 }
 
