@@ -5,7 +5,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os"
 )
 
 func messageHandler(w http.ResponseWriter, r *http.Request) {
@@ -66,28 +65,39 @@ func handleClient(conn net.Conn) {
 	// Create a buffer to read data into
 	buffer := make([]byte, 100000)
 
+	// for {
+	// 	// Read data from the client
+	// 	n, err := conn.Read(buffer)
+	// 	if err != nil {
+	// 		fmt.Println("Error:", err)
+	// 		return
+	// 	}
+	// 	if n > 0 {
+	// 		// Process and use the data (here, we'll just print it)
+	// 		_, err = fmt.Println("Mensagem recebida:", string(buffer[:n]))
+	// 		if err != nil {
+	// 			fmt.Println("Erro ao ler o buffer:", err)
+	// 			return
+	// 		}
+	// 	}
+	// }
+
 	for {
-		// Read data from the client
 		n, err := conn.Read(buffer)
 		if err != nil {
-			fmt.Println("Error:", err)
+			if err == io.EOF {
+				fmt.Printf("Conexão fechada pelo cliente: %s\n", conn.RemoteAddr())
+			} else {
+				fmt.Printf("Erro ao ler os dados do cliente: %s\n", err)
+			}
 			return
 		}
 		if n > 0 {
-			// Process and use the data (here, we'll just print it)
-			_, err = fmt.Println("Mensagem recebida:", string(buffer[:n]))
-			if err != nil {
-				fmt.Println("Erro ao ler o buffer:", err)
-				return
-			}
+			message := string(buffer[:n])
+			fmt.Printf("Mensagem recebida do cliente %s: %s\n", conn.RemoteAddr(), message)
+
+			// Aqui você pode processar a mensagem conforme necessário
+			// Por exemplo, você pode analisar os dados da mensagem para extrair as informações do rastreador GPS
 		}
 	}
-}
-
-func getPrivateIP() (string, error) {
-	privateIP := os.Getenv("PRIVATE_IP")
-	if privateIP == "" {
-		return "", fmt.Errorf("variável de ambiente PRIVATE_IP não está definida")
-	}
-	return privateIP, nil
 }
