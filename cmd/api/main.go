@@ -37,7 +37,7 @@ func main() {
 
 	// Listen for incoming connections
 	// listener, err := net.Listen("tcp", "54.210.84.139:"+port)
-	listener, err := net.Listen("tcp", "localhost:"+port)
+	listener, err := net.Listen("tcp", "129.0.0.1:"+port)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
