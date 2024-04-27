@@ -64,7 +64,7 @@ func main() {
 func handleClient(conn net.Conn) {
 	defer conn.Close()
 	// Create a buffer to read data into
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, 100000)
 
 	for {
 		// Read data from the client
