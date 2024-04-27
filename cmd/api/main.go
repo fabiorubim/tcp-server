@@ -26,11 +26,7 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	privateIP, err := getPrivateIP()
-	if err != nil {
-		fmt.Println("Erro ao obter endereço IP:", err)
-		return
-	}
+	privateIP := "0.0.0.0"
 	// Configura o handler para a rota "/"
 	port := "8090"
 	// http.HandleFunc("/", messageHandler)
