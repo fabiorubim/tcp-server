@@ -1,89 +1,75 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"io"
+	"log"
 	"net"
-	"net/http"
-	"os"
 )
 
-func messageHandler(w http.ResponseWriter, r *http.Request) {
-	// Configura o cabeçalho da resposta para indicar o tipo de conteúdo
-	w.Header().Set("Content-Type", "text/plain")
-
-	// Lê o corpo da requisição
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Erro ao ler o corpo da requisição", http.StatusInternalServerError)
-		return
-	}
-
-	// Converte o corpo para string e escreve na resposta
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Mensagem recebida: %s\n", string(body))
-	fmt.Println("Mensagem:" + string(body))
+// Server ...
+type Server struct {
+	host string
+	port string
 }
 
-func main() {
-	privateIP := "0.0.0.0"
-	// Configura o handler para a rota "/"
-	port := "8090"
-	// http.HandleFunc("/", messageHandler)
+// Client ...
+type Client struct {
+	conn net.Conn
+}
 
-	// // Inicia o servidor na porta 8080
-	// fmt.Println("Servidor iniciado na porta " + port)
-	// if err := http.ListenAndServe(":"+port, nil); err != nil {
-	// 	fmt.Printf("Erro ao iniciar o servidor: %s\n", err)
-	// }
+// Config ...
+type Config struct {
+	Host string
+	Port string
+}
 
-	// Listen for incoming connections
-	// listener, err := net.Listen("tcp", "54.210.84.139:"+port)
-	listener, err := net.Listen("tcp", privateIP+":"+port)
+// New ...
+func New(config *Config) *Server {
+	return &Server{
+		host: config.Host,
+		port: config.Port,
+	}
+}
+
+// Run ...
+func (server *Server) Run() {
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", server.host, server.port))
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		log.Fatal(err)
 	}
 	defer listener.Close()
 
-	fmt.Println("Server is listening on port " + port)
-
 	for {
-		// Accept incoming connections
 		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Println("Error:", err)
-			continue
+			log.Fatal(err)
 		}
 
-		// Handle client connection in a goroutine
-		go handleClient(conn)
+		client := &Client{
+			conn: conn,
+		}
+		go client.handleRequest()
 	}
 }
 
-func handleClient(conn net.Conn) {
-	defer conn.Close()
-	// Create a buffer to read data into
-	buffer := make([]byte, 1024)
-
+func (client *Client) handleRequest() {
+	reader := bufio.NewReader(client.conn)
 	for {
-		// Read data from the client
-		n, err := conn.Read(buffer)
+		message, err := reader.ReadString('\n')
 		if err != nil {
-			fmt.Println("Error:", err)
+			client.conn.Close()
 			return
 		}
-
-		// Process and use the data (here, we'll just print it)
-		fmt.Println("Mensagem recebida:", string(buffer[:n]))
-
+		fmt.Printf("Message incoming: %s", string(message))
+		client.conn.Write([]byte("Message received.\n"))
 	}
 }
 
-func getPrivateIP() (string, error) {
-	privateIP := os.Getenv("PRIVATE_IP")
-	if privateIP == "" {
-		return "", fmt.Errorf("variável de ambiente PRIVATE_IP não está definida")
-	}
-	return privateIP, nil
+func main() {
+	server := New(&Config{
+		Host: "0.0.0.0",
+		Port: "8090",
+	})
+	server.Run()
 }
