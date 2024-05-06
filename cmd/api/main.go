@@ -52,6 +52,12 @@ func handleClient(conn net.Conn) {
 		data := buffer[:n]
 		hexData := hex.EncodeToString(data)
 
+		fmt.Println("Dados recebidos em HEXA:", hexData)
+		fmt.Println("Dados recebidos em ASCII:", string(data))
+		fmt.Println("Número de bytes recebidos:", n)
+		fmt.Println("Tamanho de bytes recebidos:", len(data))
+		fmt.Println("Tamanho de bytes recebidos em HEXA:", len(hexData))
+
 		if len(hexData) == 68 { // 34 bytes = 68 characters in hex
 			imeiAck := []byte{0x01}
 			_, err := conn.Write(imeiAck)
