@@ -1,46 +1,19 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net"
-	"net/http"
+	"strings"
 )
-
-func messageHandler(w http.ResponseWriter, r *http.Request) {
-	// Configura o cabeçalho da resposta para indicar o tipo de conteúdo
-	w.Header().Set("Content-Type", "text/plain")
-
-	// Lê o corpo da requisição
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Erro ao ler o corpo da requisição", http.StatusInternalServerError)
-		return
-	}
-
-	// Converte o corpo para string e escreve na resposta
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Mensagem recebida: %s\n", string(body))
-	fmt.Println("Mensagem:" + string(body))
-}
 
 func main() {
 	privateIP := "0.0.0.0"
-	// Configura o handler para a rota "/"
 	port := "8090"
-	// http.HandleFunc("/", messageHandler)
-
-	// // Inicia o servidor na porta 8080
-	// fmt.Println("Servidor iniciado na porta " + port)
-	// if err := http.ListenAndServe(":"+port, nil); err != nil {
-	// 	fmt.Printf("Erro ao iniciar o servidor: %s\n", err)
-	// }
-
-	// Listen for incoming connections
-	// listener, err := net.Listen("tcp", "54.210.84.139:"+port)
 	listener, err := net.Listen("tcp", privateIP+":"+port)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("Erro ao iniciar o servidor:", err)
 		return
 	}
 	defer listener.Close()
@@ -51,7 +24,7 @@ func main() {
 		// Accept incoming connections
 		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Println("Error:", err)
+			fmt.Println("Erro ao aceitar a conexão:", err)
 			continue
 		}
 
@@ -63,41 +36,56 @@ func main() {
 func handleClient(conn net.Conn) {
 	defer conn.Close()
 	// Create a buffer to read data into
-	buffer := make([]byte, 100000)
-
-	// for {
-	// 	// Read data from the client
-	// 	n, err := conn.Read(buffer)
-	// 	if err != nil {
-	// 		fmt.Println("Error:", err)
-	// 		return
-	// 	}
-	// 	if n > 0 {
-	// 		// Process and use the data (here, we'll just print it)
-	// 		_, err = fmt.Println("Mensagem recebida:", string(buffer[:n]))
-	// 		if err != nil {
-	// 			fmt.Println("Erro ao ler o buffer:", err)
-	// 			return
-	// 		}
-	// 	}
-	// }
-
+	buffer := make([]byte, 1024)
 	for {
 		n, err := conn.Read(buffer)
 		if err != nil {
 			if err == io.EOF {
-				fmt.Printf("Conexão fechada pelo cliente: %s\n", conn.RemoteAddr())
+				fmt.Printf("Conexão fechada pelo cliente(EOF): %s\n", conn.RemoteAddr())
 			} else {
 				fmt.Printf("Erro ao ler os dados do cliente: %s\n", err)
 			}
 			return
 		}
-		if n > 0 {
-			message := string(buffer[:n])
-			fmt.Printf("Mensagem recebida do cliente %s: %s\n", conn.RemoteAddr(), message)
 
-			// Aqui você pode processar a mensagem conforme necessário
-			// Por exemplo, você pode analisar os dados da mensagem para extrair as informações do rastreador GPS
+		//Novo tratamento
+		data := buffer[:n]
+		hexData := hex.EncodeToString(data)
+
+		if len(hexData) == 68 { // 34 bytes = 68 characters in hex
+			imeiAck := []byte{0x01}
+			_, err := conn.Write(imeiAck)
+			if err != nil {
+				fmt.Println("Erro ao enviar o ACK do IMEI:", err)
+				return
+			}
+			fmt.Println("Recebido o IMEI e retornado o ACK:", err)
+		} else {
+			// Parse e manipular dados
+			fmt.Println("Brincar com os dados")
+
+			// Contar o número de dados AVL
+			numData := len(strings.Split(hexData, " ")) / 2
+			hexString := fmt.Sprintf("%08X", numData)
+			packetAck, err := hex.DecodeString(hexString)
+			if err != nil {
+				fmt.Println("Erro ao converter número de dados para hex:", err)
+				return
+			}
+			fmt.Println("Dados após o ACK", packetAck)
+			_, err = conn.Write(packetAck)
+			if err != nil {
+				fmt.Println("Erro ao enviar o ACK do pacote:", err)
+				return
+			}
 		}
+
+		// if n > 0 {
+		// 	message := string(buffer[:n])
+		// 	fmt.Printf("Mensagem recebida do cliente %s: %s\n", conn.RemoteAddr(), message)
+
+		// 	// Aqui você pode processar a mensagem conforme necessário
+		// 	// Por exemplo, você pode analisar os dados da mensagem para extrair as informações do rastreador GPS
+		// }
 	}
 }
