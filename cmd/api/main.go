@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -52,8 +53,10 @@ func handleClient(conn net.Conn) {
 		data := buffer[:n]
 		hexData := hex.EncodeToString(data)
 
+		fmt.Println("======== Cabeçalho registrado a cada mensagem recebida (seja IMEI ou dados após o IMEI ========")
+		printDateAndHour()
 		fmt.Println("Dados recebidos em HEXA:", hexData)
-		fmt.Println("Dados recebidos em ASCII:", string(data))
+		fmt.Println("Dados recebidos e convertidos para string:", string(data))
 		fmt.Println("Número de bytes recebidos:", n)
 		fmt.Println("Tamanho de bytes recebidos:", len(data))
 		fmt.Println("Tamanho de bytes recebidos em HEXA:", len(hexData))
@@ -66,10 +69,10 @@ func handleClient(conn net.Conn) {
 				fmt.Println("Erro ao enviar o ACK do IMEI:", err)
 				return
 			}
-			fmt.Println("Recebido o IMEI e retornado o ACK:", err)
+			fmt.Println("Recebido o IMEI e retornado o ACK")
 		} else {
 			// Parse e manipular dados
-			fmt.Println("Brincar com os dados")
+			fmt.Println("======== Mensagem após enviar o ACK do IMEI ========")
 
 			// Contar o número de dados AVL
 			numData := len(strings.Split(hexData, " ")) / 2
@@ -79,12 +82,13 @@ func handleClient(conn net.Conn) {
 				fmt.Println("Erro ao converter número de dados para hex:", err)
 				return
 			}
-			fmt.Println("Dados após o ACK", packetAck)
+			fmt.Println("Dados de retorno para o FMM150:", packetAck)
 			_, err = conn.Write(packetAck)
 			if err != nil {
 				fmt.Println("Erro ao enviar o ACK do pacote:", err)
 				return
 			}
+			fmt.Println("Dados enviados para o FMM150.")
 		}
 
 		// if n > 0 {
@@ -95,4 +99,9 @@ func handleClient(conn net.Conn) {
 		// 	// Por exemplo, você pode analisar os dados da mensagem para extrair as informações do rastreador GPS
 		// }
 	}
+}
+
+func printDateAndHour() {
+	currentTime := time.Now()
+	fmt.Println("Data e hora atual:", currentTime.Format("2006-01-02 15:04:05"))
 }
